@@ -17,12 +17,29 @@ public class FFTKernel extends Kernel {
         this.inputIm = inputIm;
         this.outputRe = outputRe;
         this.outputIm = outputIm;
-        this.N = N;
-        checkLengths();
-
         this.weightsIm = new float[N / 2];
         this.weightsRe = new float[N / 2];
+        this.N = N;
+
+        checkLengths();
+        reverse(inputRe);
+        reverse(inputIm);
+
         initWeights();
+    }
+
+    private void reverse(float[] x) {
+        float tmp;
+        for (int k = 0; k < N; k++) {
+            int shift = 1 + Integer.numberOfLeadingZeros(N);
+            int j = Integer.reverse(k) >>> shift;
+
+            if (j > k) {
+                tmp = x[j];
+                x[j] = x[k];
+                x[k] = tmp;
+            }
+        }
     }
 
     private void checkLengths() {
@@ -45,25 +62,14 @@ public class FFTKernel extends Kernel {
     @Override
     public void run() {
         int pass = getPassId();
-        int gId = getPassId();
+        int gId = getGlobalId();
 
-        if (pass == 0) {
-            bitReversePermutation(gId);
-        } else if (pass % 2 == 1) {
-            fftIteration(pass - 1, gId, inputRe, inputIm, outputRe, outputIm);
+        if (pass % 2 == 0) {
+            fftIteration(pass, gId, inputRe, inputIm, outputRe, outputIm);
         } else {
-            fftIteration(pass - 1, gId, outputRe, outputIm, inputRe, inputIm);
+            fftIteration(pass, gId, outputRe, outputIm, inputRe, inputIm);
         }
     }
-
-    private void bitReversePermutation(int gId) {
-        int shift = 1 + Integer.numberOfLeadingZeros(N);
-        int newId = Integer.reverse(gId) >>> shift;
-
-        inputRe[gId] = outputRe[newId];
-        inputIm[gId] = outputIm[newId];
-    }
-
 
     public void fftIteration(int pass, int gId, float[] inRe, float[] inIm, float[] outRe, float[] outIm) {
         int passBit = 1 << pass;
@@ -76,8 +82,15 @@ public class FFTKernel extends Kernel {
         int butterflyNumber = pass == 0 ? 0 : gId % (fftWidth / 2);
         int weightIndex = (butterflyNumber * N) / fftWidth;
 
-        outRe[gId] = inRe[second] * weightsRe[weightIndex] - inIm[second] * weightsIm[weightIndex];
-        outIm[gId] = inRe[second] * weightsIm[weightIndex] + inIm[second] * weightsRe[weightIndex];
+        int kthButterly = pass == 0 ? 0 : gId % (fftWidth / 2);
+        float kthAngle = -2 * kthButterly * ((float) Math.PI) / fftWidth;
+
+        //TODO use the lookup table
+        float wRe = this.cos(kthAngle);
+        float wIm = this.sin(kthAngle);
+
+        outRe[gId] = inRe[second] * wRe - inIm[second] * wIm;
+        outIm[gId] = inRe[second] * wIm + inIm[second] * wRe;
 
         outRe[gId] *= signum;
         outIm[gId] *= signum;

@@ -82,12 +82,13 @@ public class FFT {
     }
 
     public static void main(String[] args) {
-        int N = 64;
+        int N = 8;
         Complex[] x = new Complex[N];
 
         // original data
         for (int i = 0; i < N; i++)
-            x[i] = new Complex((float) (-2 * Math.random() + 1), 0);
+            x[i] = new Complex((float) i, 0);
+        //x[i] = new Complex((float) (-2 * Math.random() + 1), 0);
 
         fft(x);
 

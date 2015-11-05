@@ -3,36 +3,39 @@ package cz.letalvoj.gpgpu;
 import com.amd.aparapi.Kernel;
 import com.amd.aparapi.Range;
 
+import java.util.Arrays;
+
 
 public class JavaTest {
 
     public static void main(String[] _args) {
 
-        final int passes = 2;
-        final int size = 16;
+        final int passes = 3;
+        final int size = 8;
 
-        final float[] a = new float[size];
-        final float[] b = new float[size];
-
-        Kernel kernel = new Kernel() {
-
-            @Override
-            public void run() {
-                int passId = getPassId();
-                int gid = getGlobalId();
-
-                a[gid] = gid;
-
-            }
-
-        };
-
-        kernel.execute(Range.create(size), passes);
+        float[] inputRe = new float[size];
+        float[] inputIm = new float[size];
+        float[] outputRe = new float[size];
+        float[] outputIm = new float[size];
 
         for (int i = 0; i < size; i++) {
-            System.out.printf("%6.2f + %6.2f = %8.2f\n", a[i], b[i], 1.0);
+            inputRe[i] = i;
         }
 
+        System.out.println("inputRe: " + Arrays.toString(inputRe));
+        System.out.println("inputIm: " + Arrays.toString(inputIm));
+        System.out.println("outputRe: " + Arrays.toString(outputRe));
+        System.out.println("outputIm: " + Arrays.toString(outputIm));
+        System.out.println();
+
+        Kernel kernel = new FFTKernel(inputRe, inputIm, outputRe, outputIm, size);
+        kernel.execute(Range.create(size), passes);
+
+        System.out.println("inputRe: " + Arrays.toString(inputRe));
+        System.out.println("inputIm: " + Arrays.toString(inputIm));
+        System.out.println("outputRe: " + Arrays.toString(outputRe));
+        System.out.println("outputIm: " + Arrays.toString(outputIm));
+        System.out.println();
         kernel.dispose();
     }
 
