@@ -1,4 +1,4 @@
-package cz.letalvoj.gpgpu;
+package cz.letalvoj.gpgpu.fft;
 
 import com.amd.aparapi.Kernel;
 
@@ -80,14 +80,10 @@ public class FFTKernel extends Kernel {
         int signum = (gId == first) ? 1 : -1;
 
         int butterflyNumber = pass == 0 ? 0 : gId % (fftWidth / 2);
-        int weightIndex = (butterflyNumber * N) / fftWidth;
+        int weight = (butterflyNumber * N) / fftWidth;
 
-        int kthButterly = pass == 0 ? 0 : gId % (fftWidth / 2);
-        float kthAngle = -2 * kthButterly * ((float) Math.PI) / fftWidth;
-
-        //TODO use the lookup table
-        float wRe = this.cos(kthAngle);
-        float wIm = this.sin(kthAngle);
+        float wRe = weightsRe[weight];
+        float wIm = weightsIm[weight];
 
         outRe[gId] = inRe[second] * wRe - inIm[second] * wIm;
         outIm[gId] = inRe[second] * wIm + inIm[second] * wRe;

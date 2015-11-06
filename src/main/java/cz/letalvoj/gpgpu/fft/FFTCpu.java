@@ -1,8 +1,8 @@
-package cz.letalvoj.gpgpu;
+package cz.letalvoj.gpgpu.fft;
 
 import java.util.Arrays;
 
-public class FFT {
+public class FFTCpu {
 
     // compute the FFT of x[], assuming its length is a power of 2
     public static void fft(Complex[] x) {
@@ -31,11 +31,11 @@ public class FFT {
         Complex[] tmp, out = Arrays.copyOf(x, x.length);
         Complex[] in = new Complex[x.length];
 
-        System.out.println("x:" + Arrays.toString(x));
+        //System.out.println("x:" + Arrays.toString(x));
         int numPasses = (int) Math.round(Math.log(N) / Math.log(2));
 
         for (int pass = 0; pass < numPasses; pass++) {
-            System.out.println("pass: " + pass);
+            //System.out.println("pass: " + pass);
             int L = (int) Math.pow(2, pass + 1);
 
             for (int k = 0; k < L / 2; k++) {
@@ -49,40 +49,40 @@ public class FFT {
                 }
             }
 
-            System.out.println("x:" + Arrays.toString(x));
+            //System.out.println("x:" + Arrays.toString(x));
         }
 
-        System.out.println("out:" + Arrays.toString(out));
-        for (int pass = 0; pass < numPasses; pass++) {
-            System.out.println("pass: " + pass);
-            tmp = in;
-            in = out;
-            out = tmp;
-            int passBit = 1 << pass;
-            int fftWidth = passBit * 2;
-
-            for (int gid = 0; gid < N; gid++) {
-                int first = gid & (~passBit);
-                int second = gid | passBit;
-                int signum = (gid == first) ? 1 : -1;
-
-                assert first == gid || second == gid;
-
-                int kthButterly = pass == 0 ? 0 : gid % (fftWidth / 2);
-                double kthAngle = -2 * kthButterly * Math.PI / fftWidth;
-                Complex w = new Complex((float) Math.cos(kthAngle), (float) Math.sin(kthAngle));
-
-                out[gid] = in[first].plus(in[second].times(w).times(signum));
-            }
-
-            System.out.println("out:" + Arrays.toString(out));
-        }
+//        //System.out.println("out:" + Arrays.toString(out));
+//        for (int pass = 0; pass < numPasses; pass++) {
+//            //System.out.println("pass: " + pass);
+//            tmp = in;
+//            in = out;
+//            out = tmp;
+//            int passBit = 1 << pass;
+//            int fftWidth = passBit * 2;
+//
+//            for (int gid = 0; gid < N; gid++) {
+//                int first = gid & (~passBit);
+//                int second = gid | passBit;
+//                int signum = (gid == first) ? 1 : -1;
+//
+//                assert first == gid || second == gid;
+//
+//                int kthButterly = pass == 0 ? 0 : gid % (fftWidth / 2);
+//                double kthAngle = -2 * kthButterly * Math.PI / fftWidth;
+//                Complex w = new Complex((float) Math.cos(kthAngle), (float) Math.sin(kthAngle));
+//
+//                out[gid] = in[first].plus(in[second].times(w).times(signum));
+//            }
+//
+//            //System.out.println("out:" + Arrays.toString(out));
+//        }
 
 
     }
 
     public static void main(String[] args) {
-        int N = 8;
+        int N = 32768;
         Complex[] x = new Complex[N];
 
         // original data
@@ -91,7 +91,17 @@ public class FFT {
         //x[i] = new Complex((float) (-2 * Math.random() + 1), 0);
 
         fft(x);
+    }
 
+    public static void experiment(int N) {
+        Complex[] x = new Complex[N];
+
+        // original data
+        for (int i = 0; i < N; i++)
+            x[i] = new Complex((float) i, 0);
+        //x[i] = new Complex((float) (-2 * Math.random() + 1), 0);
+
+        fft(x);
     }
 
 }

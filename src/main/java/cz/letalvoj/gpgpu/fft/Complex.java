@@ -1,4 +1,4 @@
-package cz.letalvoj.gpgpu;
+package cz.letalvoj.gpgpu.fft;
 
 public class Complex {
     private final float re;
