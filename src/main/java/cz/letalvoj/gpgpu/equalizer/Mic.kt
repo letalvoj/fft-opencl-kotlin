@@ -21,6 +21,10 @@ public class Mic(val buffSize: Int) {
         listeners.offer(listener)
     }
 
+    fun isRunning(): Boolean {
+        return running
+    }
+
     fun start() {
         Thread {
             val format = AudioFormat(44100f, 16, 1, true, true)

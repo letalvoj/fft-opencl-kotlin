@@ -8,7 +8,7 @@ import javafx.scene.canvas.Canvas
 import javafx.scene.paint.Color
 import javafx.stage.Stage
 import java.util.*
-
+import java.util.concurrent.LinkedBlockingQueue
 
 /**
  * This class represents a simple equalizer, which shows an amplitude spectrum of signal read from microphone.
@@ -23,22 +23,27 @@ class Equalizer : Application() {
 
     private val microphone = Mic(SAMPLES / CHUNKS)
     private val fftCalculator = OpenCLFFTCalculator(SAMPLES)
-    private val buffer = LinkedList<DoubleArray>(arrayListOf())
+
+    private val chunkBuffer = LinkedList<DoubleArray>(arrayListOf())
+    private val sampleQueue = LinkedBlockingQueue<DoubleArray>(arrayListOf())
+
 
     override fun start(primaryStage: Stage) {
-        primaryStage.title = "Equalizer from microphone"
+        primaryStage.title = "Equalizer"
         val root = Group()
         val canvas = Canvas(1024.0, 512.0)
 
-        microphone.addListener({ data: DoubleArray ->
-            addToBuffer(data)
-
-            if (enoughSamplesInBuffer())
-                drawFrequences(canvas, calculateSpectrogram())
-
-        })
-
         microphone.start()
+        microphone.addListener { processChunkFromMic(it) }
+
+        Thread {
+            while (microphone.isRunning()) {
+                val data = sampleQueue.take()
+                val amplitudeSpectrum = fftCalculator.calculate(data).amplitude()
+
+                drawFrequencies(canvas, amplitudeSpectrum)
+            }
+        }.start()
 
         root.children.add(canvas)
         primaryStage.scene = Scene(root)
@@ -48,30 +53,24 @@ class Equalizer : Application() {
         canvas.heightProperty().bind(primaryStage.heightProperty());
     }
 
-    private fun addToBuffer(data: DoubleArray) {
-        buffer.offer(data)
-        if (buffer.size > CHUNKS)
-            buffer.poll()
+    private fun processChunkFromMic(data: DoubleArray) {
+        chunkBuffer.offer(data)
+        while (chunkBuffer.size > CHUNKS)
+            chunkBuffer.poll()
+
+        if (chunkBuffer.size == CHUNKS && sampleQueue.size < 2) {
+            val packed = chunkBuffer.flatMap { it.asIterable() }.toDoubleArray()
+
+            sampleQueue.offer(packed)
+        }
     }
 
-    private fun enoughSamplesInBuffer(): Boolean {
-        return buffer.size == CHUNKS
-    }
-
-    private fun calculateSpectrogram(): DoubleArray {
-        val packedData = buffer.flatMap { it.asIterable() }.toDoubleArray()
-        val amplitudeSpectrum = fftCalculator.calculate(packedData).amplitude()
-
-        return amplitudeSpectrum
-    }
-
-    private fun drawFrequences(canvas: Canvas, spectrum: DoubleArray) {
+    private fun drawFrequencies(canvas: Canvas, spectrum: DoubleArray) {
         val gc = canvas.graphicsContext2D
         val width = canvas.width
         val height = canvas.height
 
-        gc.fill = Color.BLUE
-        gc.stroke = Color.BLUE.darker()
+        gc.fill = Color.RED
         gc.clearRect(0.0, 0.0, width, height)
 
         val averaged = movingAverage(spectrum, 8, spectrum.size / 2)
