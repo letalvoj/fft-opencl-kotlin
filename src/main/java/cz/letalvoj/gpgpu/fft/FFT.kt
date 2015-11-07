@@ -15,12 +15,15 @@ class OpenCLFFTCalculator(val size: Int) : FFTCalculator {
     private val kernel = FFTKernel(size)
 
     override fun calculate(signal: DoubleArray): FrequencySpectrum {
-        kernel.execute(Range.create(size), kernel.logN)
-
         for (i in 0..kernel.N - 1)
             kernel.setInputValue(i, signal[i].toFloat(), 0.0f)
 
-        return FrequencySpectrum(toDoubleArray(kernel.resultRe), toDoubleArray(kernel.resultIm))
+        kernel.execute(Range.create(size), kernel.logN)
+
+        val real = toDoubleArray(kernel.resultRe)
+        val imag = toDoubleArray(kernel.resultIm)
+
+        return FrequencySpectrum(real, imag)
     }
 
     override fun close() = kernel.dispose()
