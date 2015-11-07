@@ -9,9 +9,10 @@ The app listens to your microphone and then shows you the frequency spectrum in 
 
 ## How to run it
 
-**Run with VM params**: -Djava.library.path=./native  -Dcom.amd.aparapi.executionMode=%1
+I successfully run the app on OSX 11 with Java 8v65 and mvn installed.
+The Aparapi library jar together with native x64 libraries is included in the project, so everything should work out of the box.
 
-Otherwise the Aparapi will fall back to CPU mode!
+**Run with VM params**: *-Djava.library.path=./native  -Dcom.amd.aparapi.executionMode=%1*, otherwise the Aparapi will fall back to CPU mode!
 
 ## Performance comparison
 
